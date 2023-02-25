@@ -59,7 +59,7 @@ for e in range(1, 100): # check number of trees between 1 and 100
 	rf_ent_err.append((np.mean(pred_ee != y_test), e, "entropy"))
 eg_optimal, ee_optimal = min(rf_gini_err), min(rf_ent_err)
 # since rf is random, need to check if entropy or gini is better
-_, e_optimal, criterion_optimal = max(eg_optimal, ee_optimal, key = lambda x:x[0])
+_, e_optimal, criterion_optimal = min(eg_optimal, ee_optimal, key = lambda x:x[0])
 # make rf prediction
 rf_pred = RandomForestClassifier(n_estimators = e_optimal, max_depth = None, criterion = criterion_optimal).fit(x_train, y_train).predict(x_test)
 rf_acc = accuracy_score(y_test, rf_pred) # rf -> ~40% accuracy
@@ -67,9 +67,11 @@ print(f"MODEL 2: RANDOM FOREST\n  rf (e = {e_optimal}, criterion = {criterion_op
 # MODEL 3: NEURAL NETWORK
 nn = models.Sequential(layers = [ # neural network (model)
 	layers.Flatten(),
+	# 395 * 16 * 0.8 = 5056
 	layers.Dense(units = 4096, activation = "relu"),
-	layers.Dense(units = 1024, activation = "relu"),
-	layers.Dense(units = 256, activation = "relu"),
+	layers.Dense(units = 2048, activation = "relu"),
+	layers.Dense(units = 512, activation = "relu"),
+	layers.Dense(units = 64, activation = "relu"),
 	layers.Dense(units = 3, activation = "softmax")
 ])
 # split into training + testing data
