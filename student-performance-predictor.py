@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from tensorflow.python.keras import models, layers
 from keras.utils import to_categorical
 from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 
 # read dataset
 df = pd.read_csv("student-mat_modified.csv", encoding="utf-8").drop(columns = ["Unnamed: 0"]).dropna() # has first column that adds nothing so i dropped it
@@ -18,19 +19,33 @@ dummy_cols = ["school", "sex", "address", "famsize", "Pstatus", "Mjob", "Fjob", 
 dummy_df = pd.concat([(pd.get_dummies(df[c]) if c in dummy_cols else df[c]) for c in dummy_cols], axis = 1) # dummy df
 # get pca data
 scaled_df = StandardScaler().fit(dummy_df).transform(dummy_df) # scale data w/ standard scaling
-pca_df = pd.DataFrame(PCA(n_components=0.9).fit(scaled_df).transform(scaled_df)) # pca data (43 predictors down to 21), enough principal comonents to explain 90% of variance
+pca_df = pd.DataFrame(PCA(n_components = 16).fit(scaled_df).transform(scaled_df)) # pca data, 16 vars explains 77.6% of variance
+# print(sum(PCA(n_components = 16).fit(scaled_df).explained_variance_ratio_))  # print explained variance
+# pca scree plot
+pca = PCA().fit(scaled_df)
+pc_vals = np.arange(pca.n_components_) + 1
+plt.plot(pc_vals, pca.explained_variance_ratio_, 'ro-', linewidth = 2)
+plt.title('scree plot')
+plt.xlabel('principal component')
+plt.ylabel('proportion of variance explained')
+plt.show()
+'''
+
+NOTE: scree plot shows that pca is not great for this dataset, but i'm using it anyway for fun
+
+'''
 # MODEL 1: KNN
 y = df["Performance"].values
 x_train, x_test, y_train, y_test = train_test_split(pca_df, y, test_size = 0.2, random_state = 0) # 80% train / 20% test
 # find optimal n_neighbors
 knn_err_rate = []
-for k in range(1, 20):
+for k in range(1, 50):
 	pred_k = KNeighborsClassifier(n_neighbors = k).fit(x_train, y_train).predict(x_test)
 	knn_err_rate.append((np.mean(pred_k != y_test), k))
-k_optimal = min(knn_err_rate)[1] # k = 6 has lowest error rate (55.7%, ouch)
+k_optimal = min(knn_err_rate)[1]
 # make knn prediction
 knn_pred = KNeighborsClassifier(n_neighbors = k_optimal).fit(x_train, y_train).predict(x_test)
-knn_acc = accuracy_score(y_test, knn_pred) # knn -> 44.3% accuracy, expected due to high dimensionality
+knn_acc = accuracy_score(y_test, knn_pred) # knn -> 43% accuracy
 print(f"MODEL 1: KNN\n  knn (k = {k_optimal}) got accuracy of {round(knn_acc * 100, 2)}%\n")
 # MODEL 2: RANDOM FOREST
 # find optimal n_estimators
